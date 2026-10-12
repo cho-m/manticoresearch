@@ -261,9 +261,16 @@ static bool GenerateInMemorySslKeys ( CSphString & sSslCert, CSphString & sSslKe
 	X509_set_pubkey ( pCert.get(), pKey.get() );
 
 	// subject and issuer name (self-signed)
-	X509_NAME * pName = X509_get_subject_name ( pCert.get() );
+	X509_NAME * pName = X509_NAME_new();
+	if ( !pName )
+	{
+		ERR_print_errors_cb ( &fnSslError, pError );
+		return false;
+	}
 	X509_NAME_add_entry_by_txt ( pName, "CN", MBSTRING_ASC, (const BYTE *)"ManticoreSoftwareLTD", -1, -1, 0);
+	X509_set_subject_name ( pCert.get(), pName );
 	X509_set_issuer_name ( pCert.get(), pName );
+	X509_NAME_free ( pName );
 
 	// extensions for TLS server certificate
 	if ( !AddCertExtension ( pCert.get(), NID_subject_alt_name, "IP:127.0.0.1,DNS:localhost" ) || !AddCertExtension ( pCert.get(), NID_basic_constraints, "critical,CA:FALSE" ) || !AddCertExtension ( pCert.get(), NID_key_usage, "critical,digitalSignature,keyEncipherment" ) )
